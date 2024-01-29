@@ -22,7 +22,6 @@ Champlain College CSI-235, Spring 2019
 The following code was written by Joshua Auerbach (jauerbach@champlain.edu)
 Host class __init__ function by Jason Reeves 1/4/2021 (reeves@champlain.edu)
 """
-import re
 from util import raise_not_defined
 
 
@@ -42,19 +41,17 @@ def is_valid_ip_address(ip_address):
         bool: True if ip_address is valid IPv4 address, False otherwise.
 
     """
-    ipv4_pattern = "" #need to find the pattern for this
-
-    if ip_address is None:
-        return False
-
     try:
-        int(ip_address)
-    except ValueError:
-        if re.match(ipv4_pattern, ip_address):
-            return True
-        else:
+
+        octets = str(ip_address).split('.')
+        if len(octets) != 4:
             return False
-    else:
+        valid = [int(x) for x in octets]
+        for x in valid:
+            if x > 255 or x < 0:
+                return False
+        return True
+    except ValueError:
         return False
 
 
