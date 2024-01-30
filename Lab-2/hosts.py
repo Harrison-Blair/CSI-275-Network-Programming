@@ -1,4 +1,4 @@
-"""Short description of code goes here.
+"""Validates a list of hostnames and ips. Also allows the user to get the ips and hostnames mapped together
 
 Author: Harrison Blair
 Class: CSI-275-01
@@ -41,8 +41,8 @@ def is_valid_ip_address(ip_address):
         bool: True if ip_address is valid IPv4 address, False otherwise.
 
     """
+    #   *** YOUR CODE HERE ***
     try:
-
         octets = str(ip_address).split('.')
         if len(octets) != 4:
             return False
@@ -70,6 +70,20 @@ def is_valid_hostname(hostname):
 
     """
     #   *** YOUR CODE HERE ***
+    try:
+        hostname_chars = [char for char in str(hostname)]
+        hostname_len = len(hostname_chars)
+        if len(hostname) < 1:
+            return False
+        if not (hostname_chars[0].isalpha() and
+                hostname_chars[hostname_len - 1].isalnum()):
+            return False
+        for char in hostname_chars:
+            if not (char.isalnum() or char == '.' or char == '-'):
+                return False
+        return True
+    except ValueError:
+        return False
     raise_not_defined()
 
 
@@ -156,6 +170,13 @@ class Hosts:
     def contains_entry(self, hostname):
         """Return whether or not a given hostname exists."""
         #   *** YOUR CODE HERE ***
+        try:
+            for entry in self.hostnames:
+                if str(entry) == str(hostname):
+                    return True
+            return False
+        except ValueError:
+            return False
         raise_not_defined()
 
     def get_ip(self, hostname):
@@ -165,4 +186,13 @@ class Hosts:
         None is returned.
         """
         #   *** YOUR CODE HERE ***
+        try:
+            for entry in self.hostnames:
+                if str(entry) == str(hostname):
+                    print(self.hostnames.index(entry))
+                    print(self.ips[self.hostnames.index(entry)])
+                    return str(self.ips[self.hostnames.index(entry)])
+            return
+        except ValueError:
+            return
         raise_not_defined()
