@@ -7,6 +7,15 @@ The following code was written by Joshua Auerbach (jauerbach@champlain.edu)
 import socket
 import constants
 
+class UDPClient:
+    host = ""
+    port = ""
+    rID = False
+    def __init__(self, host, port, rID=False):
+        if rID:
+
+        else:
+
 
 def main():
     """Run some basic tests on the required functionality.
