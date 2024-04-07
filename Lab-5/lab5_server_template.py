@@ -16,9 +16,14 @@ assignment may, for the purpose of assessing this assignment:
 """
 
 import socket
+import numbers
 
 HOST = "localhost"
 PORT = 20000
+
+
+class FormatError(Exception):
+    pass
 
 
 class SortServer:
@@ -27,11 +32,19 @@ class SortServer:
     def __init__(self, host, port):
         """Initializes the server by calling bind on the port and localhost"""
         self.s.bind((host, port))
+        self.address = (host, port)
         pass
 
     def run_server(self):
-        """Don't forget your docstring!"""
+        """Hosts a server that listens for incoming transmissions of numbers and sorts them
+
+        Has an optional parameter for the sorting method
+        Validates that all values are floats/ints
+        Makes sure that the transmissions are in proper format
+        """
         self.s.listen()
+        print(f"Listening @ {self.address}")
+
         conn, addr = self.s.accept()
         with conn:
             print(f"Connection accepted at: {addr}")
@@ -39,20 +52,67 @@ class SortServer:
                 data = conn.recv(1024)
 
                 if not data:
+                    conn.sendall(str("ERROR").encode('ascii'))
                     break
                 else:
-                    # Split string and sort it
+                    # Split string and decode
                     try:
                         string = data.decode('ascii')
-                        chars = string.split()
+                        items = string.split()
+                        final_item = items[len(items) - 1].split("|")
+                        sorting_mode = 'a'
 
-                        if chars[0] != "LIST":
-                            conn.sendall(str("ERROR").encode('ascii'))
-                            break
+                        if len(final_item) == 2:
+                            items.remove(items[len(items) - 1])
+                            items.append(final_item[0])
+                            sorting_mode = final_item[1]
+
+                        print()
+                        print(f"  Received: {string}")
+
+                        # If the first item in the array is NOT "LIST", tell the client no
+                        if items[0] != "LIST":
+                            raise FormatError
+
+                        # If there is less than 2 items and the first is LIST then there is nothing to sort
+                        if len(items) < 2:
+                            raise FormatError
+
+                        # Try to float each item to see if float
+                        for item in items[1:]:
+                            float(item)
+
+                        # Decides the sorting mode and sorts
+                        if sorting_mode == "a":
+                            nums = sorted(items[1:], key=float)
+                        elif sorting_mode == "d":
+                            nums = sorted(items[1:], key=float, reverse=True)
+                        elif sorting_mode == "s":
+                            nums = sorted(items[1:])
                         else:
-                            #SEND INFO TO CLIENT
-                    except:
-                        conn.send(str("Error").encode('ascii'))
+                            raise FormatError
+
+                        message_to_send = "SORTED"
+
+                        for num in nums:
+                            message_to_send += f" {num}"
+
+                        conn.sendall(message_to_send.encode('ascii'))
+                        print(f"  Sent: {message_to_send}")
+
+                    except UnicodeDecodeError:
+                        print("    ERROR: Unicode Decoding Error")
+                        conn.sendall(str("ERROR").encode('ascii'))
+
+                    except ValueError:
+                        print("    ERROR: Type Error")
+                        conn.sendall(str("ERROR").encode('ascii'))
+
+                    except FormatError:
+                        print("    ERROR: Formatting")
+                        conn.sendall(str("ERROR").encode('ascii'))
+
+            conn.close()
 
 
 if __name__ == "__main__":
