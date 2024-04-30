@@ -1,7 +1,7 @@
 """ Client code for the final messaging service project
 
 Author: Harrison Blair
-Class: CSI-275-01
+Class: CSI-275-02
 Assignment: Final Project
 
 Certification of Authenticity:
@@ -14,7 +14,9 @@ assignment may, for the purpose of assessing this assignment:
 - service (which may then retain a copy of this assignment on its database for
 - the purpose of future plagiarism checking)
 """
-import threading, socket, random, json
+import threading
+import socket
+import json
 
 # Server Host Info
 HOST = "localhost"
@@ -27,11 +29,10 @@ def recvall(sock, length):
     while len(data) < length:
         more = sock.recv(length - len(data))
         if not more:
-            raise EOFError('was expecting %d bytes but only received'
-                           ' %d bytes before the socket closed'
-                           % (length, len(data)))
+            raise EOFError(f'I was lied to! Only {len(data)} / {length} received!')
         data += more
     return data
+
 
 class MessagingClient:
     """ A simple messaging client that allows communication with the messaging server
@@ -42,7 +43,7 @@ class MessagingClient:
         """ Creates initial sending and receiving sockets and starts threads
 
         """
-        self.name = self.getScreenName()
+        self.name = self.get_screen_name()
         self.send_sock = self.create_client_socket(host, send_port)
         self.recv_sock = self.create_client_socket(host, recv_port)
 
@@ -55,7 +56,7 @@ class MessagingClient:
 
         return sock
 
-    def getScreenName(self):
+    def get_screen_name(self):
         """ Prompts the user to enter a 3-16 character alphanumerical name"""
         while True:
             name = input("Select a 3-16 character alphanumerical screen-name: ")
@@ -65,10 +66,11 @@ class MessagingClient:
                 print("Invalid screen name. Please try again.")
 
     def print_msg_to_console(self, message):
+        """ Printing helper function, for printing messages to console"""
         print(f"{message['type']} {message['name']} : {message['body']}")
 
     def send_messages(self, sock, name):
-        """ Handles sending messages to the server"""
+        """ Handles sending messages to the server """
         print(f"Welcome to the super awesome chatting place {name}!")
         print("    - To send a message to all users connected, simply enter")
         print("      the message you wish to broadcast.")
@@ -78,6 +80,7 @@ class MessagingClient:
         print("    - To exit, enter !exit")
         print("Happy chatting!")
         try:
+            # Attempt to send messages forever, until error or !exit
             done = False
             while not done:
                 while True:
@@ -85,29 +88,31 @@ class MessagingClient:
                     if txt:
                         break
 
-                command = txt.split(' ', 1)[0]
-                command = command[1:]
-                if txt[0] == "@":
-                    target = txt.split(' ', 1)[0]
-                    target = target[1:]
+                # Split the string to see what type of message it is
+                target = txt.split(' ', 1)[0]
+                target = target[1:]
+                if txt[0] == "@":  # @ sign signifies a private message
                     msg = {"name": name, "type": "PRIVATE", "target": target, "body": txt}
-                elif command == "exit":
+                elif txt[0] == "!" and target == "exit":  # ! signifies a command, and "exit" specifically here
                     msg = {"name": name, "type": "EXIT", "body": ""}
                     done = True
-                else:
+                else:  # If there is no signifier, then it is a broadcast
                     msg = {"name": name, "type": "BROADCAST", "body": txt}
 
+                # Turn the resultant message into a JSON object, then send to the server
                 json_msg = json.dumps(msg)
                 sock.send(len(json_msg).to_bytes(4, 'big') + json_msg.encode('utf-8'))
-                self.print_msg_to_console(msg)
+                self.print_msg_to_console(msg)  # Print messages sent to the console for easier readability
         except EOFError:
             print('Client socket has closed')
         except ConnectionResetError as e:
             print('Connection reset')
 
     def recv_messages(self, sock, name):
-        """"""
-        # Basic Start Mssage
+        """Receive messages from the server and displays them to console
+
+        Also handles initialization START command sent to the server"""
+        # Basic Start Message
         start_msg = {"name": name, "type": "START", "body": ""}
 
         # json conversion for code readability
@@ -115,17 +120,21 @@ class MessagingClient:
 
         # Send start message
         sock.send(len(start_json).to_bytes(4, 'big') + start_json.encode("utf-8"))
-        # Forever recieve messages
+        # Forever receive messages
         while True:
             length = int.from_bytes(sock.recv(4), 'big')
 
+            # If the incoming message has a length of zero, wait for a new message
             if length == 0:
                 break
 
+            # Receive message and decode
             message = recvall(sock, length).decode("utf-8")
 
+            # Convert message to usable form
             message = json.loads(message)
 
+            # Print message
             print()
             self.print_msg_to_console(message)
 

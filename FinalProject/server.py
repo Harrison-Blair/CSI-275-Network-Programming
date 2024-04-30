@@ -1,7 +1,7 @@
 """ Server code for the final messaging service project
 
 Author: Harrison Blair
-Class: CSI-275-01
+Class: CSI-275-02
 Assignment: Final Project
 
 Certification of Authenticity:
@@ -14,23 +14,25 @@ assignment may, for the purpose of assessing this assignment:
 - service (which may then retain a copy of this assignment on its database for
 - the purpose of future plagiarism checking)
 """
-import threading, socket, json
+import threading
+import socket
+import json
 
 # Server Host Info
 HOST = "localhost"
 SEND_PORT = 1245
 RECV_PORT = 1246
 
+
 def recvall(sock, length):
     data = b''
     while len(data) < length:
         more = sock.recv(length - len(data))
         if not more:
-            raise EOFError('was expecting %d bytes but only received'
-                           ' %d bytes before the socket closed'
-                           % (length, len(data)))
+            raise EOFError(f'I was lied to! Only {len(data)} / {length} received!')
         data += more
     return data
+
 
 class MessagingServer:
     """ A simple messaging server that allows for users to send public and private messages
@@ -53,6 +55,9 @@ class MessagingServer:
         return sock
 
     def handle_client(self, client_sock):
+        """ Handles the connections details between an individual client
+
+        Receives messages from the clients and decides what to do with them"""
         try:
             while True:
                 length = int.from_bytes(client_sock.recv(4), 'big')
@@ -76,13 +81,13 @@ class MessagingServer:
                                 err_msg = {"name": "!SERVER!", "type": "ERROR", "body": "User does not exist!"}
                                 err_msg = json.dumps(err_msg)
                                 client[1].send(len(err_msg).to_bytes(4, 'big') + err_msg.encode('utf-8'))
-                elif message['type'] == 'EXIT':
+                elif message['type'] == 'EXIT':  # If it is an exit message, find the socket then close and remove it
                     for client in self.clients:
                         if client[0] == message['name']:
-                            print(f"Ending Connection with {message['name']}")
+                            print(f"Ending Connection with {message['name']} on {client[1]}")
                             client[1].close()
                             self.clients.remove((client[0], client[1]))
-                    client_sock.close()
+                    client_sock.close()  # Close this individual socket
         except EOFError:
             print('Client socket has closed')
         except ConnectionResetError as e:
@@ -91,12 +96,10 @@ class MessagingServer:
             pass
 
     def reading_thread(self, sock):
+        """ Handles infinitely accepting connections and generating threads for those connections"""
         try:
             while True:
                 client_sock, addr = sock.accept()
-
-                print(f"Connection accepted!")
-                print(f"    Socket Info: {client_sock}")
 
                 t = threading.Thread(target=self.handle_client, args=(client_sock,))
                 t.start()
@@ -123,13 +126,13 @@ class MessagingServer:
                     print(f"Connection accepted!")
                     print(f"    Name: {start_msg['name']}")
                     print(f"    Socket Info: {sock}")
+                    print(f"    Raw Request: {start_msg}")
                 else:
                     client_sock.close()
         except EOFError:
             print('Client socket has closed')
         except ConnectionResetError as e:
             print('Connection reset')
-
 
     def start_threads(self, input_sock, output_sock, workers=5):
         """ Starts new threads for the input and output sockets"""
@@ -147,6 +150,7 @@ class MessagingServer:
 
         for thread in threads:
             thread.join()
+
 
 if __name__ == '__main__':
     messaging_server = MessagingServer(HOST, SEND_PORT, RECV_PORT)
