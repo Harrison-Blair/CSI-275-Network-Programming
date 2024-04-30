@@ -64,7 +64,14 @@ class MessagingServer:
                 json_msg = recvall(client_sock, length).decode('utf-8')
 
                 message = json.loads(json_msg)
-                print(message)
+                print(f"Message Incoming from {client_sock}!")
+                print(f"    Raw Message: {message}")
+                print(f"    Author: {message['name']}")
+                print(f"    Type: {message['type']}")
+                if message['type'] == 'PRIVATE':
+                    print(f"        Target: {message['target']}")
+                print(f"    Body: {message['body']}")
+
                 if message['type'] == 'BROADCAST':
                     for client in self.clients:
                         if not client[0] == message['name']:
@@ -91,7 +98,8 @@ class MessagingServer:
         except EOFError:
             print('Client socket has closed')
         except ConnectionResetError as e:
-            print('Connection reset')
+            print(f'Connection reset by {client_sock}!')
+            client_sock.close()
         except OSError:
             pass
 
@@ -106,7 +114,7 @@ class MessagingServer:
         except EOFError:
             print('Client socket has closed')
         except ConnectionResetError as e:
-            print('Connection reset')
+            print('Connection reset not epic')
 
     def writing_thread(self, sock):
         """Accepts new connections from client recv_sock and adds them to a list
@@ -121,14 +129,10 @@ class MessagingServer:
 
                 start_msg = json.loads(json_msg)
 
-                if start_msg["type"] == "START":
-                    self.clients.append((start_msg["name"], client_sock))
-                    print(f"Connection accepted!")
-                    print(f"    Name: {start_msg['name']}")
-                    print(f"    Socket Info: {sock}")
-                    print(f"    Raw Request: {start_msg}")
-                else:
-                    client_sock.close()
+                self.clients.append((start_msg['name'], client_sock))
+                print(f"Connection accepted from user: {start_msg['name']}")
+                print(f"    Socket: {client_sock}")
+                print(f"    Raw message: {start_msg}")
         except EOFError:
             print('Client socket has closed')
         except ConnectionResetError as e:

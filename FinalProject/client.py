@@ -60,7 +60,7 @@ class MessagingClient:
         """ Prompts the user to enter a 3-16 character alphanumerical name"""
         while True:
             name = input("Select a 3-16 character alphanumerical screen-name: ")
-            if 3 < len(name) < 16 and name.isalnum():
+            if 3 <= len(name) <= 16 and name.isalnum():
                 return name
             else:
                 print("Invalid screen name. Please try again.")
@@ -120,6 +120,7 @@ class MessagingClient:
 
         # Send start message
         sock.send(len(start_json).to_bytes(4, 'big') + start_json.encode("utf-8"))
+
         # Forever receive messages
         while True:
             length = int.from_bytes(sock.recv(4), 'big')
