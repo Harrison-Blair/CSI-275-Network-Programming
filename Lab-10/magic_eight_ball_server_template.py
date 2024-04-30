@@ -1,4 +1,19 @@
-"""TODO Don't forget your docstrings!"""
+"""Server code for Lab 10: eight ball
+
+Author: Harrison Blair
+Class: CSI-275-01
+Assignment: Lab 10 - Multi-Threaded 8-Ball Server
+
+Certification of Authenticity:
+I certify that this is entirely my own work, except where I have given
+fully-documented references to the work of others. I understand the definition
+and consequences of plagiarism and acknowledge that the assessor of this
+assignment may, for the purpose of assessing this assignment:
+- Reproduce this assignment and provide a copy to another member of academic
+- staff; and/or Communicate a copy of this assignment to a plagiarism checking
+- service (which may then retain a copy of this assignment on its database for
+- the purpose of future plagiarism checking)
+"""
 
 import threading, socket, random
 
@@ -33,7 +48,9 @@ MAX_BYTES = 1024
 
 
 class EightBallServer:
-    """TODO Don't forget your docstrings!"""
+    """Creates a socket and assigns workers to new threads when a new connection is established
+
+    Provides a random response to each question asked, seperated by a specified delimiter."""
 
     def __init__(self, host, port):
         """Create the initial listening socket and start our threads."""
@@ -48,7 +65,11 @@ class EightBallServer:
         Should go through the create/bind/listen steps and return
         the created listening socket.
         """
-        pass
+        sock = socket.socket()
+        sock.bind((host, port))
+        sock.listen(20)
+
+        return sock
 
     # TODO Write this function!
     def accept_8ball_connections(self, listener):
@@ -64,6 +85,23 @@ class EightBallServer:
             - Send all of the answers as a single string back to the client,
             - and close the socket.
         """
+        while True:
+            client_sock, addr = listener.accept()
+
+            questions = b""
+            response = ""
+            while True:
+                (question, remaining) = self.recv_until_delimiter(client_sock, b"?", questions)
+
+                if not question:
+                    break
+                else:
+                    response += ANSWER_LIST[random.randint(0, 19)]
+                    questions = remaining
+
+            client_sock.sendall(response.encode("ascii"))
+
+            client_sock.close()
         pass
 
     def recv_until_delimiter(self, sock, byte_delim, storage):
@@ -135,8 +173,14 @@ class EightBallServer:
         Each thread should call accept_connections_forever() as its
         starting function.
         """
-        pass
+        threads = []
+        for x in range(workers+1):
+            thread = threading.Thread(target=self.accept_connections_forever, args=(listener,))
+            thread.start()
+            threads.append(thread)
 
+        for thread in threads:
+            thread.join()
 
 if __name__ == "__main__":
     eight_ball = EightBallServer(HOST, SERVER_PORT)
